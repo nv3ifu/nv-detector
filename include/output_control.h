@@ -7,6 +7,21 @@
 
 namespace tracker {
 
+// ANSI 颜色代码
+namespace Color {
+constexpr const char* kReset = "\033[0m";
+constexpr const char* kRed = "\033[31m";
+constexpr const char* kGreen = "\033[32m";
+constexpr const char* kYellow = "\033[33m";
+constexpr const char* kBlue = "\033[34m";
+constexpr const char* kMagenta = "\033[35m";
+constexpr const char* kCyan = "\033[36m";
+constexpr const char* kBoldRed = "\033[1;31m";
+constexpr const char* kBoldGreen = "\033[1;32m";
+constexpr const char* kBoldYellow = "\033[1;33m";
+constexpr const char* kBoldCyan = "\033[1;36m";
+}  // namespace Color
+
 /**
  * @class OutputControl
  * @brief 输出控制类，用于管理检测器的输出行为

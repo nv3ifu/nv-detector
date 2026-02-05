@@ -190,19 +190,25 @@ auto MemoryTracker::RecordDeallocation(void* ptr) -> void {
 auto MemoryTracker::PrintStatus() const -> void {
   std::lock_guard<std::mutex> lock(mutex_);  // 加锁保护数据结构
 
-  // 打印内存使用统计信息
-  TRACKER_PRINT("\n=== Memory Tracker Status ===\n");
+  // 打印内存使用统计信息（前面添加换行分隔）
+  TRACKER_PRINT("\n\n=== Memory Tracker Status ===\n");
   TRACKER_PRINT("Total allocated: %zu bytes\n", total_allocated_);
   TRACKER_PRINT("Total freed: %zu bytes\n", total_freed_);
   TRACKER_PRINT("Active allocations: %zu\n", active_allocations_);
-  TRACKER_PRINT("Potential leaks: %zu\n", allocations_.size());
+  TRACKER_PRINT(
+      "Potential leaks: %s%zu%s\n",
+      allocations_.empty() ? tracker::Color::kGreen : tracker::Color::kBoldRed,
+      allocations_.size(), tracker::Color::kReset);
 
   // 如果有泄漏，打印详细信息
   if (!allocations_.empty()) {
-    TRACKER_PRINT("\nDetailed leak information:\n");
+    TRACKER_PRINT("\n%sDetailed leak information:%s\n",
+                  tracker::Color::kBoldYellow, tracker::Color::kReset);
     for (const auto& pair : allocations_) {
       const auto& info = pair.second;
-      TRACKER_PRINT("\nLeak at %p (size: %zu bytes)\n", pair.first, info.size);
+      TRACKER_PRINT("\n%sLeak at %p (size: %zu bytes)%s\n",
+                    tracker::Color::kBoldRed, pair.first, info.size,
+                    tracker::Color::kReset);
 
       // 解析调用栈，将地址转换为符号名称
       char** symbols = backtrace_symbols(info.callstack.data(),
@@ -235,8 +241,14 @@ auto MemoryTracker::PrintStatus() const -> void {
                 reinterpret_cast<char*>(abs_addr) -
                 reinterpret_cast<char*>(dlinfo.dli_fbase));
 
-            TRACKER_PRINT("  [%zu] Absolute: %p, Relative: %p\n", frame_index,
-                          abs_addr, rel_addr);
+            // 第一帧（泄漏发生的位置）使用高亮颜色
+            const char* color =
+                (frame_index == 0) ? tracker::Color::kBoldCyan : "";
+            const char* reset =
+                (frame_index == 0) ? tracker::Color::kReset : "";
+
+            TRACKER_PRINT("  %s[%zu] Absolute: %p, Relative: %p%s\n", color,
+                          frame_index, abs_addr, rel_addr, reset);
             TRACKER_PRINT("      Module: %s\n", dlinfo.dli_fname);
 
             // 使用addr2line工具解析源代码位置
@@ -251,7 +263,9 @@ auto MemoryTracker::PrintStatus() const -> void {
               std::array<char, kLineBufferSize> line{};
               // NOLINTNEXTLINE(clang-analyzer-unix.BlockInCriticalSection)
               if (fgets(line.data(), line.size(), pipe) != nullptr) {
-                TRACKER_PRINT("      Source: %s", line.data());
+                // 第一帧的源代码位置也高亮显示
+                TRACKER_PRINT("      %sSource: %s%s", color, line.data(),
+                              reset);
               }
               pclose(pipe);
             }
@@ -259,7 +273,12 @@ auto MemoryTracker::PrintStatus() const -> void {
             frame_index++;  // 只有用户代码才增加索引
           } else {
             // 如果无法获取模块信息，直接打印符号（假设是用户代码）
-            TRACKER_PRINT("  [%zu] %s\n", frame_index, symbols[i]);
+            const char* color =
+                (frame_index == 0) ? tracker::Color::kBoldCyan : "";
+            const char* reset =
+                (frame_index == 0) ? tracker::Color::kReset : "";
+            TRACKER_PRINT("  %s[%zu] %s%s\n", color, frame_index, symbols[i],
+                          reset);
             frame_index++;
           }
         }
@@ -496,59 +515,102 @@ auto MemoryHook::Start() -> void {
   hook_ = PltHook::Create(lib_path_.c_str());
 
   try {
+    std::vector<std::string> hooked_functions;
+    std::vector<std::string> skipped_functions;
+
     // 替换malloc函数
     if (hook_->ReplaceFunction("malloc", reinterpret_cast<void*>(&HookedMalloc),
-                               nullptr) != PltHook::ErrorCode::kSuccess) {
+                               nullptr) == PltHook::ErrorCode::kSuccess) {
+      hooked_functions.push_back("malloc");
+    } else {
       TRACKER_ERROR("Failed to hook malloc: %s",
                     PltHook::GetLastError().c_str());
     }
 
     // 替换free函数
     if (hook_->ReplaceFunction("free", reinterpret_cast<void*>(&HookedFree),
-                               nullptr) != PltHook::ErrorCode::kSuccess) {
+                               nullptr) == PltHook::ErrorCode::kSuccess) {
+      hooked_functions.push_back("free");
+    } else {
       TRACKER_ERROR("Failed to hook free: %s", PltHook::GetLastError().c_str());
     }
 
     // 替换calloc函数（可能不存在于PLT表中）
     if (hook_->ReplaceFunction("calloc", reinterpret_cast<void*>(&HookedCalloc),
-                               nullptr) != PltHook::ErrorCode::kSuccess) {
-      TRACKER_WARNING("Note: calloc not found in PLT, skipping");
+                               nullptr) == PltHook::ErrorCode::kSuccess) {
+      hooked_functions.push_back("calloc");
+    } else {
+      skipped_functions.push_back("calloc");
     }
 
     // 替换realloc函数（可能不存在于PLT表中）
     if (hook_->ReplaceFunction("realloc",
                                reinterpret_cast<void*>(&HookedRealloc),
-                               nullptr) != PltHook::ErrorCode::kSuccess) {
-      TRACKER_WARNING("Note: realloc not found in PLT, skipping");
+                               nullptr) == PltHook::ErrorCode::kSuccess) {
+      hooked_functions.push_back("realloc");
+    } else {
+      skipped_functions.push_back("realloc");
     }
 
     // 替换operator new函数（C++特有）
     if (hook_->ReplaceFunction("_Znwm",  // operator new的符号名
                                reinterpret_cast<void*>(&HookedOperatorNew),
-                               nullptr) != PltHook::ErrorCode::kSuccess) {
-      TRACKER_WARNING("Note: operator new not found in PLT, skipping");
+                               nullptr) == PltHook::ErrorCode::kSuccess) {
+      hooked_functions.push_back("operator new");
+    } else {
+      skipped_functions.push_back("operator new");
     }
 
     // 替换operator delete函数（C++特有）
     if (hook_->ReplaceFunction("_ZdlPv",  // operator delete的符号名
                                reinterpret_cast<void*>(&HookedOperatorDelete),
-                               nullptr) != PltHook::ErrorCode::kSuccess) {
-      TRACKER_WARNING("Note: operator delete not found in PLT, skipping");
+                               nullptr) == PltHook::ErrorCode::kSuccess) {
+      hooked_functions.push_back("operator delete");
+    } else {
+      skipped_functions.push_back("operator delete");
     }
 
     // 替换operator new[]函数（C++特有）
     if (hook_->ReplaceFunction("_Znam",  // operator new[]的符号名
                                reinterpret_cast<void*>(&HookedOperatorNewArray),
-                               nullptr) != PltHook::ErrorCode::kSuccess) {
-      TRACKER_WARNING("Note: operator new[] not found in PLT, skipping");
+                               nullptr) == PltHook::ErrorCode::kSuccess) {
+      hooked_functions.push_back("operator new[]");
+    } else {
+      skipped_functions.push_back("operator new[]");
     }
 
     // 替换operator delete[]函数（C++特有）
     if (hook_->ReplaceFunction(
             "_ZdaPv",  // operator delete[]的符号名
             reinterpret_cast<void*>(&HookedOperatorDeleteArray),
-            nullptr) != PltHook::ErrorCode::kSuccess) {
-      TRACKER_WARNING("Note: operator delete[] not found in PLT, skipping");
+            nullptr) == PltHook::ErrorCode::kSuccess) {
+      hooked_functions.push_back("operator delete[]");
+    } else {
+      skipped_functions.push_back("operator delete[]");
+    }
+
+    // 输出成功 hook 的函数列表
+    TRACKER_PRINT("%sSuccessfully hooked functions:%s ", tracker::Color::kGreen,
+                  tracker::Color::kReset);
+    for (size_t i = 0; i < hooked_functions.size(); ++i) {
+      TRACKER_PRINT("%s", hooked_functions[i].c_str());
+      if (i < hooked_functions.size() - 1) {
+        TRACKER_PRINT(", ");
+      }
+    }
+    TRACKER_PRINT("\n");
+
+    // 输出跳过的函数列表
+    if (!skipped_functions.empty()) {
+      TRACKER_PRINT("%sSkipped functions (not in PLT):%s ",
+                    tracker::Color::kYellow, tracker::Color::kReset);
+      for (size_t i = 0; i < skipped_functions.size(); ++i) {
+        TRACKER_PRINT("%s", skipped_functions[i].c_str());
+        if (i < skipped_functions.size() - 1) {
+          TRACKER_PRINT(", ");
+        }
+      }
+      TRACKER_PRINT("\n");
     }
 
   } catch (const std::exception& e) {

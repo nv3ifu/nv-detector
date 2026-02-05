@@ -157,7 +157,6 @@ endif()
 # Run memory_leak_test
 if(TARGET memory_leak_test)
     add_custom_target(run_memory_leak_test
-        COMMAND ${CMAKE_COMMAND} -E echo "Running Memory Leak Detection test..."
         COMMAND ${EXAMPLES_OUTPUT_DIR}/memory_leak_test
         DEPENDS memory_leak_test
         WORKING_DIRECTORY ${EXAMPLES_OUTPUT_DIR}
