@@ -38,7 +38,7 @@ class PltHook {
    * 当没有更多符号时，返回kEofReached。
    */
   auto EnumerateSymbols(unsigned int& pos, const char*& name_out,
-                             void**& addr_out) const -> ErrorCode;
+                        void**& addr_out) const -> ErrorCode;
 
   /**
    * @brief 替换PLT表中的函数
@@ -53,7 +53,7 @@ class PltHook {
    * 这样可以在新函数中调用原始函数，实现函数调用的拦截和监控。
    */
   auto ReplaceFunction(const char* funcname, void* newfunc,
-                            void** oldfunc = nullptr) -> ErrorCode;
+                       void** oldfunc = nullptr) -> ErrorCode;
 
   /**
    * @brief 获取最近的错误信息
@@ -70,6 +70,8 @@ class PltHook {
    * 释放所有资源，包括内部分配的内存和打开的文件句柄。
    */
   ~PltHook();
+  PltHook(const PltHook&) = delete;
+  auto operator=(const PltHook&) -> PltHook& = delete;
 
  private:
   // 实现细节隐藏在头文件之外
@@ -78,8 +80,4 @@ class PltHook {
 
   // 私有构造函数 - 使用Create()代替
   explicit PltHook(struct link_map* lmap);
-
-  // 禁止拷贝
-  PltHook(const PltHook&) = delete;
-  auto operator=(const PltHook&) -> PltHook& = delete;
 };

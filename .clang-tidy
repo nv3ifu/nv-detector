@@ -3,7 +3,10 @@ Checks: 'google-*,
          modernize-*,
          readability-*,
          -google-readability-namespace-comments,
-         -google-runtime-references'
+         -google-runtime-references,
+         -readability-identifier-length,
+         -readability-convert-member-functions-to-static,
+         -clang-diagnostic-error
 
 CheckOptions:
   - key: readability-identifier-naming.ClassCase

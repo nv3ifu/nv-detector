@@ -110,8 +110,18 @@ foreach(EXAMPLE_SRC ${EXAMPLE_FILES})
     
     add_executable(${EXAMPLE_NAME} ${EXAMPLE_SRC})
     
-    # Apply standard options
-    target_link_libraries(${EXAMPLE_NAME} PRIVATE project_options)
+    # memory_leak_test 使用宽松的编译选项（故意包含内存泄漏示例）
+    if(EXAMPLE_NAME STREQUAL "memory_leak_test")
+        # 只使用 C++20 标准，不应用严格的警告选项
+        target_compile_features(${EXAMPLE_NAME} PRIVATE cxx_std_20)
+        # 禁用 clang-tidy 检查
+        set_target_properties(${EXAMPLE_NAME} PROPERTIES CXX_CLANG_TIDY "")
+        # 禁用所有警告和错误，添加调试信息
+        target_compile_options(${EXAMPLE_NAME} PRIVATE -Wno-error -w -g)
+    else()
+        # 其他示例应用标准选项
+        target_link_libraries(${EXAMPLE_NAME} PRIVATE project_options)
+    endif()
     
     # Link main library if available
     if(TARGET nv_detector)
@@ -140,5 +150,17 @@ if(TARGET plthook_test AND TARGET dynamic_example)
         DEPENDS plthook_test dynamic_example
         WORKING_DIRECTORY ${EXAMPLES_OUTPUT_DIR}
         COMMENT "Running plthook_test with libdynamic_example.so"
+    )
+endif()
+
+# --- 8. Custom Target: memory_leak_test ---
+# Run memory_leak_test
+if(TARGET memory_leak_test)
+    add_custom_target(run_memory_leak_test
+        COMMAND ${CMAKE_COMMAND} -E echo "Running Memory Leak Detection test..."
+        COMMAND ${EXAMPLES_OUTPUT_DIR}/memory_leak_test
+        DEPENDS memory_leak_test
+        WORKING_DIRECTORY ${EXAMPLES_OUTPUT_DIR}
+        COMMENT "Running memory leak detection test"
     )
 endif()
