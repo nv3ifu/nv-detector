@@ -86,6 +86,18 @@ class OutputControl {
    */
   [[nodiscard]] auto GetOutputFile() const -> FILE* { return output_file_; }
 
+  /**
+   * @brief 输出带颜色的内容（控制台有颜色，文件无颜色）
+   * @param color_start 颜色开始代码
+   * @param color_end 颜色结束代码（通常是 Color::kReset）
+   * @param format 格式化字符串
+   * @param ... 可变参数列表
+   *
+   * 控制台输出时会包含颜色代码，文件输出时会去除颜色代码
+   */
+  auto PrintColored(const char* color_start, const char* color_end,
+                    const char* format, ...) const -> void;
+
   // 禁用拷贝构造和赋值操作，确保单例性质
   OutputControl(const OutputControl&) = delete;
   auto operator=(const OutputControl&) -> OutputControl& = delete;

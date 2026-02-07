@@ -101,16 +101,46 @@ auto OutputControl::PrintToFile(const char* format, ...) const -> void {
  * 如果配置为仅文件输出，则不执行任何操作。
  */
 auto OutputControl::PrintToConsole(const char* format, ...) const -> void {
-  // 如果配置为仅文件输出，则直接返回
-  if (output_option_ == OutputOption::kOutputOptionFile) {
-    return;
-  }
-
   // 处理可变参数并输出到控制台
   va_list args;
   va_start(args, format);
   vprintf(format, args);
   va_end(args);
+}
+
+/**
+ * @brief 输出带颜色的内容（控制台有颜色，文件无颜色）
+ * @param color_start 颜色开始代码
+ * @param color_end 颜色结束代码
+ * @param format 格式化字符串
+ * @param ... 可变参数列表
+ *
+ * 控制台输出时会包含颜色代码，文件输出时会去除颜色代码
+ */
+auto OutputControl::PrintColored(const char* color_start, const char* color_end,
+                                 const char* format, ...) const -> void {
+  va_list args1, args2;
+  va_start(args1, format);
+
+  // 如果配置为输出到控制台，则输出带颜色的内容
+  if (output_option_ == OutputOption::kOutputOptionConsoleFile ||
+      output_option_ == OutputOption::kOutputOptionConsole) {
+    va_copy(args2, args1);
+    printf("%s", color_start);
+    vprintf(format, args2);
+    printf("%s", color_end);
+    va_end(args2);
+  }
+
+  // 如果配置为输出到文件，则输出不带颜色的内容
+  if ((output_option_ == OutputOption::kOutputOptionConsoleFile ||
+       output_option_ == OutputOption::kOutputOptionFile) &&
+      output_file_ != nullptr) {
+    vfprintf(output_file_, format, args1);
+    fflush(output_file_);
+  }
+
+  va_end(args1);
 }
 
 /**

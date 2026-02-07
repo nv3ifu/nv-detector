@@ -35,7 +35,8 @@ enum OutputOption {
  * 该函数必须在使用其他检测器函数之前调用，用于配置检测器的工作模式和输出方式。
  * 工作目录用于存放检测结果文件，如果选择了文件输出方式。
  */
-void DetectorInit(const char* work_dir, DetectorOption detect_option, OutputOption output_option);
+void DetectorInit(const char* work_dir, DetectorOption detect_option,
+                  OutputOption output_option);
 
 /**
  * @brief 启动检测器

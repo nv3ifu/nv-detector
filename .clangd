@@ -7,3 +7,6 @@ CompileFlags:
 Diagnostics:
   UnusedIncludes: Strict
   MissingIncludes: Strict
+  ClangTidy:
+    Add: ['*']
+    FastCheckFilter: None

@@ -3,7 +3,7 @@
 #include <memory>
 #include <string>
 
-class PltHook {
+class __attribute__((visibility("default"))) PltHook {
  public:
   // 错误代码
   enum class ErrorCode {

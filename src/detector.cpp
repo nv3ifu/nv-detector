@@ -9,10 +9,9 @@
 #include "detector.h"
 
 #include <ctime>
-
 #include <string>
 
-// #include "lock_detect.h"  // 死锁检测暂时注释
+#include "lock_detect.h"
 #include "memory_detect.h"
 #include "output_control.h"
 
@@ -46,8 +45,9 @@ static DetectorOption detector_option = kDetectorOptionMemoryLock;
  *
  * 配置检测器的工作模式和输出方式，必须在使用其他函数前调用
  */
-auto DetectorInit(const char* work_dir, DetectorOption detect_option,
-                   OutputOption output_option) -> void {
+__attribute__((visibility("default"))) auto DetectorInit(
+    const char* work_dir, DetectorOption detect_option,
+    OutputOption output_option) -> void {
   detector_option = detect_option;
   std::string output_file_name = GetFilePath(work_dir);
   tracker::OutputControl::Instance().Configure(output_option, output_file_name);
@@ -59,14 +59,13 @@ auto DetectorInit(const char* work_dir, DetectorOption detect_option,
  * 根据初始化时配置的选项启动相应的检测模块
  * 必须在注册完所有需要检测的库后调用
  */
-auto DetectorStart(void) -> void {
+__attribute__((visibility("default"))) auto DetectorStart(void) -> void {
   if ((detector_option & kDetectorOptionMemory) != 0) {
     MemoryDetect::GetInstance().Start();
   }
-  // 死锁检测暂时注释
-  // if (detector_option & kDetectorOptionLock) {
-  //   LockDetect::GetInstance().Start();
-  // }
+  if ((detector_option & kDetectorOptionLock) != 0) {
+    LockDetect::GetInstance().Start();
+  }
 }
 
 /**
@@ -75,14 +74,13 @@ auto DetectorStart(void) -> void {
  * 根据配置的选项执行内存泄漏检测或死锁检测
  * 可以在程序的关键点调用，检查是否存在内存泄漏或死锁
  */
-auto DetectorDetect(void) -> void {
+__attribute__((visibility("default"))) auto DetectorDetect(void) -> void {
   if ((detector_option & kDetectorOptionMemory) != 0) {
     MemoryDetect::GetInstance().Detect();
   }
-  // 死锁检测暂时注释
-  // if (detector_option & kDetectorOptionLock) {
-  //   LockDetect::GetInstance().Detect();
-  // }
+  if ((detector_option & kDetectorOptionLock) != 0) {
+    LockDetect::GetInstance().Detect();
+  }
 }
 
 /**
@@ -92,17 +90,17 @@ auto DetectorDetect(void) -> void {
  * 将指定的动态库添加到检测范围，会hook该库中的相关函数
  * 必须在Start前调用
  */
-auto DetectorRegister(const char* lib_name) -> void {
+__attribute__((visibility("default"))) auto DetectorRegister(
+    const char* lib_name) -> void {
   if (lib_name == nullptr) {
     return;
   }
   if ((detector_option & kDetectorOptionMemory) != 0) {
     MemoryDetect::GetInstance().Register(lib_name);
   }
-  // 死锁检测暂时注释
-  // if (detector_option & kDetectorOptionLock) {
-  //   LockDetect::GetInstance().Register(lib_name);
-  // }
+  if ((detector_option & kDetectorOptionLock) != 0) {
+    LockDetect::GetInstance().Register(lib_name);
+  }
 }
 
 /**
@@ -111,14 +109,13 @@ auto DetectorRegister(const char* lib_name) -> void {
  * 将主程序添加到检测范围，会hook主程序中的相关函数
  * 必须在Start前调用
  */
-auto DetectorRegisterMain(void) -> void {
+__attribute__((visibility("default"))) auto DetectorRegisterMain(void) -> void {
   if ((detector_option & kDetectorOptionMemory) != 0) {
     MemoryDetect::GetInstance().Register("");
   }
-  // 死锁检测暂时注释
-  // if (detector_option & kDetectorOptionLock) {
-  //   LockDetect::GetInstance().Register("");
-  // }
+  if ((detector_option & kDetectorOptionLock) != 0) {
+    LockDetect::GetInstance().Register("");
+  }
 }
 
 }  // extern "C"

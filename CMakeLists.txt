@@ -33,11 +33,15 @@ target_compile_options(project_options INTERFACE
         -Wall -Wextra -Wpedantic 
         -Wshadow -Wconversion -Wsign-conversion
         -Werror
+        -fvisibility=hidden
+        -fvisibility-inlines-hidden
     >
     $<$<CXX_COMPILER_ID:GNU>:
         -Wall -Wextra -Wpedantic 
         -Wshadow -Wconversion -Wsign-conversion
         -Werror
+        -fvisibility=hidden
+        -fvisibility-inlines-hidden
     >
     $<$<CXX_COMPILER_ID:MSVC>:
         /W4 /WX
@@ -161,5 +165,17 @@ if(TARGET memory_leak_test)
         DEPENDS memory_leak_test
         WORKING_DIRECTORY ${EXAMPLES_OUTPUT_DIR}
         COMMENT "Running memory leak detection test"
+    )
+endif()
+
+# --- 9. Custom Target: deadlock_test ---
+# deadlock_test needs pthread for std::thread
+if(TARGET deadlock_test)
+    target_link_libraries(deadlock_test PRIVATE pthread)
+    add_custom_target(run_deadlock_test
+        COMMAND ${EXAMPLES_OUTPUT_DIR}/deadlock_test
+        DEPENDS deadlock_test
+        WORKING_DIRECTORY ${EXAMPLES_OUTPUT_DIR}
+        COMMENT "Running deadlock detection test"
     )
 endif()
