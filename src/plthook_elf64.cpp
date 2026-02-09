@@ -3,6 +3,7 @@
 #include <link.h>
 #include <sys/mman.h>
 #include <unistd.h>
+
 #include <array>
 #include <cerrno>
 #include <climits>
@@ -13,12 +14,13 @@
 #include <string>
 #include <system_error>
 #include <vector>
+
 #include "plthook.h"
 constexpr auto kJumpSlot = R_X86_64_JUMP_SLOT;
 struct MemoryProtection {
-  size_t start;    
-  size_t end;      
-  int protection;  
+  size_t start;
+  size_t end;
+  int protection;
 };
 struct PltHook::Impl {
   const Elf64_Sym* dynsym;
@@ -42,7 +44,7 @@ size_t PltHook::Impl::page_size = 0;
 std::string PltHook::Impl::error_message;
 PltHook::Impl::Impl(struct link_map* lmap) {
   if (page_size == 0) {
-    page_size = static_cast<size_t>(sysconf(_SC_PAGESIZE));  
+    page_size = static_cast<size_t>(sysconf(_SC_PAGESIZE));
   }
   InitializeFromLinkMap(lmap);
   LoadMemoryProtections();
@@ -116,10 +118,10 @@ auto PltHook::Impl::GetMemoryProtection(void* addr) const -> int {
 }
 auto PltHook::Impl::SetError(const char* fmt, ...) -> void {
   constexpr size_t kBufSize = 512;
-  std::array<char, kBufSize> buf{};  
+  std::array<char, kBufSize> buf{};
   va_list arg_ptr;
   va_start(arg_ptr, fmt);
-  vsnprintf(buf.data(), kBufSize, fmt, arg_ptr);  
+  vsnprintf(buf.data(), kBufSize, fmt, arg_ptr);
   va_end(arg_ptr);
   error_message = buf.data();
 }
@@ -191,6 +193,7 @@ auto PltHook::EnumerateSymbols(unsigned int& pos, const char*& name_out,
   addr_out = nullptr;
   return PltHook::ErrorCode::kEofReached;
 }
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 auto PltHook::ReplaceFunction(const char* funcname, void* newfunc,
                               void** oldfunc) -> PltHook::ErrorCode {
   void* original = dlsym(RTLD_DEFAULT, funcname);
@@ -222,7 +225,7 @@ auto PltHook::ReplaceFunction(const char* funcname, void* newfunc,
         }
       }
       if (oldfunc != nullptr) {
-        *oldfunc = original;  
+        *oldfunc = original;
       }
       *addr = newfunc;
       if ((prot & PROT_WRITE) == 0) {

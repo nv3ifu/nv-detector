@@ -1,6 +1,8 @@
 #include "output_control.h"
+
 #include <sys/stat.h>
 #include <sys/types.h>
+
 #include <array>
 #include <cstring>
 #include <ctime>
@@ -51,7 +53,8 @@ auto OutputControl::PrintToConsole(const char* format, ...) const -> void {
 }
 auto OutputControl::PrintColored(const char* color_start, const char* color_end,
                                  const char* format, ...) const -> void {
-  va_list args1, args2;
+  va_list args1;
+  va_list args2;
   va_start(args1, format);
   if (output_option_ == OutputOption::kOutputOptionConsoleFile ||
       output_option_ == OutputOption::kOutputOptionConsole) {
@@ -97,4 +100,4 @@ auto OutputControl::CloseOutputFile() -> void {
   }
 }
 OutputControl::~OutputControl() { CloseOutputFile(); }
-}  
+}  // namespace tracker
