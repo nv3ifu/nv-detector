@@ -13,6 +13,7 @@ class MemoryDetect {
   void Start();
   void Detect();
   ~MemoryDetect();
+
  private:
   MemoryDetect();
   std::unique_ptr<MemoryDetectImpl> impl_;

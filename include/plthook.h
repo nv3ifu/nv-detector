@@ -20,6 +20,7 @@ class __attribute__((visibility("default"))) PltHook {
   ~PltHook();
   PltHook(const PltHook&) = delete;
   auto operator=(const PltHook&) -> PltHook& = delete;
+
  private:
   struct Impl;
   std::unique_ptr<Impl> pimpl_;

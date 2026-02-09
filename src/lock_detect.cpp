@@ -1,6 +1,8 @@
 #include "lock_detect.h"
+
 #include <dlfcn.h>
 #include <execinfo.h>
+
 #include <algorithm>
 #include <array>
 #include <cstdio>
@@ -11,19 +13,20 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
+
 #include "output_control.h"
 #include "plthook.h"
 namespace tracker {
 struct LockInfo {
-  void* lock_addr = nullptr;              
-  pthread_t owner_thread = 0;             
-  std::vector<void*> callstack;           
-  std::unordered_set<void*> waiting_for;  
-  bool acquired = false;                  
+  void* lock_addr = nullptr;
+  pthread_t owner_thread = 0;
+  std::vector<void*> callstack;
+  std::unordered_set<void*> waiting_for;
+  bool acquired = false;
 };
 struct ThreadInfo {
-  std::vector<void*> held_locks;     
-  std::vector<void*> waiting_locks;  
+  std::vector<void*> held_locks;
+  std::vector<void*> waiting_locks;
 };
 class LockTracker {
  public:
@@ -93,6 +96,7 @@ class LockTracker {
     }
   }
   auto PrintStatus() const -> void;
+
  private:
   LockTracker() = default;
   auto GetCallStack(std::vector<void*>& callstack) -> void {
@@ -108,9 +112,9 @@ class LockTracker {
       -> bool;
   auto PrintLockInfo(const LockInfo& info) const -> void;
   auto PrintCallStack(const std::vector<void*>& callstack) const -> void;
-  mutable std::mutex mutex_;  
-  std::unordered_map<void*, LockInfo> active_locks_;       
-  std::unordered_map<pthread_t, ThreadInfo> thread_info_;  
+  mutable std::mutex mutex_;
+  std::unordered_map<void*, LockInfo> active_locks_;
+  std::unordered_map<pthread_t, ThreadInfo> thread_info_;
 };
 static auto Instance() -> LockTracker& { return LockTracker::GetInstance(); }
 auto LockTracker::DetectDeadlock(void* lock_addr, pthread_t thread_id) -> bool {
@@ -143,17 +147,17 @@ auto LockTracker::DetectDeadlockDFS(
   for (void* waited_lock : info.waiting_for) {
     auto waited_lock_it = active_locks_.find(waited_lock);
     if (waited_lock_it == active_locks_.end()) {
-      continue;  
+      continue;
     }
     pthread_t owner_thread = waited_lock_it->second.owner_thread;
     if (DetectDeadlockDFS(waited_lock, owner_thread, visited_threads,
                           lock_chain)) {
-      return true;  
+      return true;
     }
   }
   visited_threads.erase(current_thread);
   lock_chain.pop_back();
-  return false;  
+  return false;
 }
 auto LockTracker::PrintLockInfo(const LockInfo& info) const -> void {
   TRACKER_PRINT("Lock %p (Mutex) held by thread %lu\n", info.lock_addr,
@@ -227,7 +231,7 @@ auto LockTracker::PrintCallStack(const std::vector<void*>& callstack) const
     free(symbols);
   }
 }
-}  
+}  // namespace tracker
 using PthreadMutexFunc = int (*)(pthread_mutex_t*);
 static PthreadMutexFunc g_orig_mutex_lock = nullptr;
 static PthreadMutexFunc g_orig_mutex_unlock = nullptr;
@@ -256,6 +260,7 @@ class LockHook {
   explicit LockHook(std::string lib_path) : lib_path_(std::move(lib_path)) {}
   ~LockHook() = default;
   auto Start() -> void;
+
  private:
   std::string lib_path_;
   std::unique_ptr<PltHook> hook_;
@@ -301,6 +306,7 @@ class LockDetectImpl {
   auto RegisterMain() -> void;
   auto Start() -> void;
   auto Detect() -> void;
+
  private:
   std::vector<std::unique_ptr<LockHook>> hooks_;
 };

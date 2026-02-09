@@ -4,7 +4,7 @@
 class LockDetectImpl;
 class LockDetect {
  public:
-  static LockDetect& GetInstance() {
+  static auto GetInstance() -> LockDetect& {
     static LockDetect instance;
     return instance;
   }
@@ -13,6 +13,7 @@ class LockDetect {
   void Start();
   void Detect();
   ~LockDetect();
+
  private:
   LockDetect();
   std::unique_ptr<LockDetectImpl> impl_;

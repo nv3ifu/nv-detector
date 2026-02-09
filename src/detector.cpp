@@ -1,6 +1,8 @@
 #include "detector.h"
+
 #include <ctime>
 #include <string>
+
 #include "lock_detect.h"
 #include "memory_detect.h"
 #include "output_control.h"
@@ -54,4 +56,4 @@ __attribute__((visibility("default"))) auto DetectorRegisterMain(void) -> void {
     LockDetect::GetInstance().Register("");
   }
 }
-}  
+}

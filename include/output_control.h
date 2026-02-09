@@ -1,6 +1,7 @@
 #pragma once
 #include <cstdarg>
 #include <string>
+
 #include "detector.h"
 namespace tracker {
 namespace Color {
@@ -15,7 +16,7 @@ constexpr const char* kBoldRed = "\033[1;31m";
 constexpr const char* kBoldGreen = "\033[1;32m";
 constexpr const char* kBoldYellow = "\033[1;33m";
 constexpr const char* kBoldCyan = "\033[1;36m";
-}  
+}  // namespace Color
 class OutputControl {
  public:
   static auto Instance() -> OutputControl& {
@@ -31,6 +32,7 @@ class OutputControl {
                     const char* format, ...) const -> void;
   OutputControl(const OutputControl&) = delete;
   auto operator=(const OutputControl&) -> OutputControl& = delete;
+
  private:
   OutputControl() = default;
   ~OutputControl();
@@ -40,7 +42,7 @@ class OutputControl {
   std::string output_file_name_;
   FILE* output_file_ = nullptr;
 };
-}  
+}  // namespace tracker
 #define TRACKER_PRINT(...) tracker::OutputControl::Instance().Print(__VA_ARGS__)
 #define TRACKER_PRINT_FILE(...) \
   tracker::OutputControl::Instance().PrintToFile(__VA_ARGS__)
