@@ -215,6 +215,8 @@ static auto HookedCalloc(size_t nmemb, size_t size) -> void* {
   tracker::Instance().RecordAllocation(ptr, nmemb * size);
   return ptr;
 }
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wuse-after-free"
 static auto HookedRealloc(void* old_ptr, size_t new_size) -> void* {
   TRACKER_DEBUG("HookedRealloc: %p, %zu\n", old_ptr, new_size);
   auto old_addr = reinterpret_cast<std::uintptr_t>(old_ptr);
@@ -231,6 +233,7 @@ static auto HookedRealloc(void* old_ptr, size_t new_size) -> void* {
   }
   return new_ptr;
 }
+#pragma GCC diagnostic pop
 static auto HookedOperatorNew(size_t size) -> void* {
   TRACKER_DEBUG("HookedOperatorNew: %zu\n", size);
   void* ptr = malloc(size);

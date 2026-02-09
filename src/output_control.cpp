@@ -86,7 +86,9 @@ auto OutputControl::OpenOutputFile() -> void {
   if (last_slash != std::string::npos) {
     std::string dir_path = filename.substr(0, last_slash);
     std::string cmd = "mkdir -p \"" + dir_path + "\" 2>/dev/null";
-    system(cmd.c_str());
+    if (system(cmd.c_str()) < 0) {
+      // Ignore mkdir failure, file open will fail later if needed
+    }
   }
   output_file_ = fopen(filename.c_str(), "w");
   if (output_file_ == nullptr) {
